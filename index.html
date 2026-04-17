@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OS Exam Prep — Sem 4</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">OS Prep 🎯</div>
+  <button class="tab-btn ch1 active" onclick="switchTab('ch1')">04 · Deadlock</button>
+  <button class="tab-btn ch2" onclick="switchTab('ch2')">05 · Memory Mgmt</button>
+  <button class="tab-btn ch3" onclick="switchTab('ch3')">06 · File &amp; I/O</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════
+     CHAPTER 4 — DEADLOCK MANAGEMENT
+══════════════════════════════════════════════════════ -->
+<div id="ch1" class="tab-content ch1 active">
+
+  <div class="chapter-header">
+    <div class="chapter-tag">CHAPTER 04 · CO4</div>
+    <div class="chapter-title">Deadlock Management</div>
+    <div class="chapter-sub">Principles · Conditions · RAG · Prevention · Avoidance · Detection · Recovery · Dining Philosophers</div>
+  </div>
+
+  <div class="section-label">Core Concepts</div>
+
+  <div class="concept-card">
+    <div class="concept-title">What is a Deadlock?</div>
+    <div class="concept-body">
+      A <strong>deadlock</strong> is a situation where a set of processes are <strong>permanently blocked</strong>, each waiting for a resource held by another process in the same set. No process can ever proceed — they're stuck forever.<br><br>
+      A process uses a resource in 3 steps: <strong>Request → Use → Release</strong>.<br>
+      <em>Example:</em> P1 holds Printer, wants DVD. P2 holds DVD, wants Printer → Deadlock!
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">4 Necessary Conditions for Deadlock (Coffman's Conditions)</div>
+    <div class="concept-body">
+      ALL four must hold simultaneously for a deadlock to occur:<br><br>
+      <strong>1. Mutual Exclusion</strong> — At least one resource is non-shareable (only one process at a time).<br>
+      <strong>2. Hold and Wait</strong> — A process holds at least one resource AND waits to acquire more held by others.<br>
+      <strong>3. No Preemption</strong> — A resource can only be released voluntarily by the process holding it.<br>
+      <strong>4. Circular Wait</strong> — A chain of processes P0→P1→P2→...→P0, each waiting for a resource held by the next.
+    </div>
+    <details class="deep-dive">
+      <summary>Memory trick + exam note</summary>
+      <div class="deep-content">
+        Remember as <strong>"MH-NC"</strong> → <strong>M</strong>utual exclusion, <strong>H</strong>old-and-wait, <strong>N</strong>o preemption, <strong>C</strong>ircular wait.<br><br>
+        Exam tip: <em>"Circular wait implies hold-and-wait"</em> — they are not fully independent. Breaking ANY ONE condition prevents deadlock.
+      </div>
+    </details>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Resource Allocation Graph (RAG)</div>
+    <div class="concept-body">
+      A directed graph with two types of nodes and two types of edges:<br><br>
+      <strong>Nodes:</strong> Processes (circles) and Resources (rectangles with dots = instances)<br>
+      <strong>Request edge:</strong> Pi → Rj — Process Pi is requesting resource Rj<br>
+      <strong>Assignment edge:</strong> Rj → Pi — Resource Rj is allocated to Pi<br><br>
+      <strong>Rules:</strong><br>
+      • If graph has <strong>NO cycle</strong> → No deadlock guaranteed<br>
+      • If graph has <strong>a cycle + single instance</strong> per resource → Deadlock<br>
+      • If graph has <strong>a cycle + multiple instances</strong> → Deadlock <em>may or may not</em> exist
+    </div>
+    <details class="deep-dive">
+      <summary>Wait-for Graph (for Detection)</summary>
+      <div class="deep-content">
+        A <strong>Wait-for Graph</strong> is derived from the RAG by removing resource nodes and collapsing edges. An edge Pi → Pj means Pi is waiting for Pj to release a resource.<br><br>
+        If the <strong>wait-for graph contains a cycle → Deadlock</strong> (used only when each resource has single instance).<br>
+        Detection runs in <code>O(n²)</code> operations.
+      </div>
+    </details>
+  </div>
+
+  <div class="section-label">Deadlock Prevention</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Prevention — Attack each condition</div>
+    <div class="concept-body">Break one of the 4 conditions:</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Condition</th><th>Prevention Strategy</th><th>Drawback</th></tr>
+      <tr><td><strong>Mutual Exclusion</strong></td><td>Make resources shareable (e.g., read-only files)</td><td>Not possible for all resources (printers can't be shared)</td></tr>
+      <tr><td><strong>Hold &amp; Wait</strong></td><td>Request ALL resources before start, OR release all before requesting new ones</td><td>Low utilization; starvation possible</td></tr>
+      <tr><td><strong>No Preemption</strong></td><td>If a resource can't be granted, preempt (take away) resources of waiting processes</td><td>Only works for resources whose state can be saved (CPU regs, memory)</td></tr>
+      <tr><td><strong>Circular Wait</strong></td><td>Impose a total ordering on resources. Processes must request in increasing order (F: tape=1, disk=5, printer=12)</td><td>Hard to enforce; app developer responsibility</td></tr>
+    </table>
+  </div>
+
+  <div class="section-label">Deadlock Avoidance — Banker's Algorithm</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Safe State Concept</div>
+    <div class="concept-body">
+      A <strong>safe state</strong> = the OS can find a <strong>safe sequence</strong> &lt;P1, P2, ..., Pn&gt; where each process can be satisfied using currently available resources + resources freed by earlier processes.<br><br>
+      <strong>Safe → No deadlock guaranteed</strong><br>
+      <strong>Unsafe → Deadlock POSSIBLE</strong> (but not certain)<br><br>
+      Banker's Algorithm keeps the system always in a safe state by checking before granting any resource.
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Banker's Algorithm — Data Structures</div>
+    <div class="concept-body">
+      For <strong>n processes</strong> and <strong>m resource types</strong>:<br><br>
+      <strong>Available[m]</strong> — Number of free instances of each resource type<br>
+      <strong>Max[n][m]</strong> — Maximum demand of each process for each resource<br>
+      <strong>Allocation[n][m]</strong> — Currently allocated resources to each process<br>
+      <strong>Need[n][m]</strong> — Remaining need: <strong>Need = Max − Allocation</strong>
+    </div>
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-title">Safety Algorithm</div>
+    <span class="step">1.</span> Work = Available; Finish[i] = <span class="kw">false</span> for all i<br>
+    <span class="step">2.</span> Find i where Finish[i]=false AND Need[i] ≤ Work<br>
+    <span class="step">3.</span> Work = Work + Allocation[i]; Finish[i] = <span class="kw">true</span>; goto step 2<br>
+    <span class="step">4.</span> If Finish[i] = <span class="kw">true</span> for ALL i → <span class="kw">SAFE STATE</span> ✓<br>
+    <span class="comment">// Complexity: O(m × n²)</span>
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-title">Resource-Request Algorithm (when Pi requests Requesti)</div>
+    <span class="step">1.</span> If Request[i] &gt; Need[i] → <span class="kw">ERROR</span> (exceeded max claim)<br>
+    <span class="step">2.</span> If Request[i] &gt; Available → Pi must <span class="kw">WAIT</span><br>
+    <span class="step">3.</span> Pretend to allocate:<br>
+       &nbsp;&nbsp;Available = Available − Request[i]<br>
+       &nbsp;&nbsp;Allocation[i] = Allocation[i] + Request[i]<br>
+       &nbsp;&nbsp;Need[i] = Need[i] − Request[i]<br>
+    <span class="step">4.</span> Run Safety Algorithm:<br>
+       &nbsp;&nbsp;If <span class="kw">SAFE</span> → Grant request ✓<br>
+       &nbsp;&nbsp;If <span class="kw">UNSAFE</span> → Rollback and make Pi wait
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">📊 Classic Exam Example — Banker's (5 processes, 3 resources A,B,C)</div>
+    <div class="matrix">
+<span class="mh">         Alloc    Max     Available</span>
+<span class="mh">         A B C    A B C    A B C</span>
+P0       0 1 0    7 5 3    3 3 2
+P1       2 0 0    3 2 2
+P2       3 0 2    9 0 2
+P3       2 1 1    2 2 2
+P4       0 0 2    4 3 3
+
+<span class="mh">Need (= Max − Alloc):</span>
+P0 = 7 4 3
+P1 = 1 2 2  ← Need ≤ Available? Yes! → allocate P1 first
+P2 = 6 0 0
+P3 = 0 1 1  ← Next
+P4 = 4 3 1
+
+<span class="mh">Safe Sequence: &lt;P1, P3, P4, P2, P0&gt; ✓</span>
+    </div>
+    <p style="font-size:0.85rem; color: var(--muted); margin-top:0.5rem;">
+      If P1 now requests (1,0,2): Check (1,0,2) ≤ Need(1,2,2) ✓ and ≤ Available(3,3,2) ✓ → pretend allocate → run safety → Safe sequence found → <strong>GRANT ✓</strong>
+    </p>
+  </div>
+
+  <div class="section-label">Deadlock Detection &amp; Recovery</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Detection Algorithm (Multiple Instances)</div>
+    <div class="concept-body">
+      Similar to Banker's Safety Algorithm but uses <strong>Request matrix</strong> (current requests) instead of Need. If Finish[i] = false after running → those processes are <strong>deadlocked</strong>.<br><br>
+      <strong>Key difference from Banker's:</strong> No Max declared. The algorithm is <em>optimistic</em> — assumes processes with no current requests will finish soon.
+    </div>
+    <details class="deep-dive">
+      <summary>When to invoke detection?</summary>
+      <div class="deep-content">
+        • <strong>Every resource request that can't be immediately granted</strong> — catches deadlock fast but expensive<br>
+        • <strong>Periodically</strong> (e.g., every hour) or when CPU utilization drops below 40%<br><br>
+        Trade-off: More frequent = faster detection but higher overhead.
+      </div>
+    </details>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Recovery from Deadlock</div>
+    <div class="concept-body">
+      Two approaches:<br><br>
+      <strong>1. Process Termination</strong><br>
+      &nbsp;&nbsp;• <em>Abort ALL</em> deadlocked processes (expensive — discards work)<br>
+      &nbsp;&nbsp;• <em>Abort ONE at a time</em> until deadlock breaks (run detection after each abort)<br>
+      &nbsp;&nbsp;• Victim selection based on: priority, computation time, resources held, resources needed<br><br>
+      <strong>2. Resource Preemption</strong><br>
+      &nbsp;&nbsp;• Select a victim → Rollback → Restart from a safe state<br>
+      &nbsp;&nbsp;• Risk of <strong>starvation</strong> (same process always picked as victim) — solved by including rollback count in cost factor
+    </div>
+  </div>
+
+  <div class="section-label">Dining Philosophers Problem</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Dining Philosophers — Classic Synchronization Problem</div>
+    <div class="concept-body">
+      <strong>Setup:</strong> 5 philosophers sitting at a round table. 5 chopsticks (one between each pair). Each philosopher needs <strong>2 chopsticks</strong> to eat. They think → pick up left → pick up right → eat → put down.<br><br>
+      <strong>Problem:</strong> If all 5 pick up left chopstick simultaneously → all wait for right → <strong>DEADLOCK</strong><br><br>
+      <strong>Solutions:</strong><br>
+      • Allow at most <strong>4 philosophers</strong> at the table at once<br>
+      • Pick up <strong>both chopsticks atomically</strong> (only if both available)<br>
+      • <strong>Asymmetric:</strong> Odd-numbered philosophers pick left first; even pick right first (breaks circular wait)<br>
+      • <strong>Monitor-based:</strong> Philosopher picks up both or waits
+    </div>
+    <details class="deep-dive">
+      <summary>Mapping to 4 deadlock conditions</summary>
+      <div class="deep-content">
+        <strong>Mutual exclusion:</strong> Chopstick can only be used by one philosopher<br>
+        <strong>Hold &amp; wait:</strong> Philosopher holds one chopstick and waits for another<br>
+        <strong>No preemption:</strong> Philosopher won't put down chopstick until done eating<br>
+        <strong>Circular wait:</strong> P1 waits for P2's chopstick, P2 waits for P3's... P5 waits for P1's
+      </div>
+    </details>
+  </div>
+
+  <div class="section-label">Quick Comparison Table</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Approach</th><th>Mechanism</th><th>Overhead</th><th>Drawback</th></tr>
+      <tr><td><strong>Prevention</strong></td><td>Deny one of 4 conditions</td><td>Low at runtime</td><td>Poor utilization / starvation</td></tr>
+      <tr><td><strong>Avoidance (Banker)</strong></td><td>Safe state checking</td><td>Medium</td><td>Need max declared in advance</td></tr>
+      <tr><td><strong>Detection</strong></td><td>Run detection algorithm</td><td>High</td><td>Recovery is expensive</td></tr>
+      <tr><td><strong>Ignore</strong></td><td>Ostrich algorithm</td><td>None</td><td>System may crash (used in UNIX/Windows!)</td></tr>
+    </table>
+  </div>
+
+  <div class="section-label">Important Q&amp;A</div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q1</span>What are the 4 necessary conditions for deadlock? (2 marks)</div>
+    <div class="qa-a">
+      The four necessary conditions are: <strong>(1) Mutual Exclusion</strong> — at least one resource must be non-shareable; <strong>(2) Hold and Wait</strong> — a process holds one resource while waiting for others; <strong>(3) No Preemption</strong> — resources can only be released voluntarily; <strong>(4) Circular Wait</strong> — a circular chain of processes, each waiting for a resource held by the next. All four must hold simultaneously for deadlock to occur.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q2</span>Explain the Banker's Algorithm with an example. (10 marks)</div>
+    <div class="qa-a">
+      The <strong>Banker's Algorithm</strong> is a deadlock avoidance algorithm. It is named because it works like a bank that never allocates cash in a way that it can't satisfy all future needs.<br><br>
+      <em>Data structures:</em> Available, Max, Allocation, Need (= Max − Allocation).<br><br>
+      <em>Working:</em> When a process requests resources, the OS pretends to allocate them and runs the Safety Algorithm. If a safe sequence exists, it grants the request. Otherwise, the process must wait.<br><br>
+      <em>See the worked example above for the 5-process, 3-resource illustration.</em><br><br>
+      <strong>Limitations:</strong> Every process must declare maximum resource needs in advance. Fixed number of processes and resources assumed.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q3</span>Differentiate deadlock prevention vs deadlock avoidance. (4 marks)</div>
+    <div class="qa-a">
+      <strong>Prevention</strong> — Structurally ensures one of the 4 conditions can never hold (e.g., resource ordering). Applied at design time. Simpler but causes low resource utilization.<br><br>
+      <strong>Avoidance</strong> — Dynamically decides at runtime whether to grant a request based on future knowledge (max claims). Uses Banker's Algorithm. More flexible but requires advance information and has runtime overhead.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q4</span>What is a Resource Allocation Graph? When does it indicate deadlock? (5 marks)</div>
+    <div class="qa-a">
+      A Resource Allocation Graph (RAG) is a directed graph with two types of nodes — <strong>Processes (circles)</strong> and <strong>Resources (rectangles)</strong>. Two types of edges: <strong>Request edge</strong> (Pi → Rj) and <strong>Assignment edge</strong> (Rj → Pi).<br><br>
+      <strong>Deadlock detection from RAG:</strong><br>
+      • No cycle → No deadlock<br>
+      • Cycle + single instance per resource → Deadlock definitely exists<br>
+      • Cycle + multiple instances → Deadlock may or may not exist (need to check further)
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q5</span>Consider: Available = [0,0,0]; 3 processes. P0: Alloc=[1,0,0] Max=[1,0,0]; P1: Alloc=[0,1,0] Max=[0,1,0]; P2: Alloc=[0,0,1] Max=[0,0,1]. Is system in safe state? (5 marks)</div>
+    <div class="qa-a">
+      <strong>Need = Max − Allocation:</strong> P0 needs [0,0,0], P1 needs [0,0,0], P2 needs [0,0,0].<br><br>
+      Since all Need values = [0,0,0] and Work starts at [0,0,0]:<br>
+      • P0: Need [0,0,0] ≤ Work [0,0,0] ✓ → Work becomes [0,0,0]+[1,0,0] = [1,0,0]<br>
+      • P1: Need [0,0,0] ≤ Work [1,0,0] ✓ → Work = [1,1,0]<br>
+      • P2: Need [0,0,0] ≤ Work [1,1,0] ✓ → Work = [1,1,1]<br><br>
+      All Finish[i] = true. <strong>Safe state — Safe sequence &lt;P0, P1, P2&gt;</strong>.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q6</span>Explain the Dining Philosophers problem and its deadlock-free solutions. (7 marks)</div>
+    <div class="qa-a">
+      5 philosophers at a round table, alternating between thinking and eating. 5 chopsticks, one between each pair. A philosopher needs both adjacent chopsticks to eat.<br><br>
+      <strong>Deadlock scenario:</strong> All pick up left chopstick simultaneously → circular wait → deadlock.<br><br>
+      <strong>Solutions:</strong><br>
+      1. <em>Allow max 4 philosophers</em> at table at once (breaks circular wait by not allowing full circle to form)<br>
+      2. <em>Atomic pickup</em> — Only pick up chopsticks if both are free (breaks hold-and-wait)<br>
+      3. <em>Asymmetric solution</em> — Odd philosophers pick left then right; even pick right then left (breaks circular wait)<br>
+      4. <em>Monitor-based</em> — Use a monitor with states (thinking/hungry/eating) and condition variables<br><br>
+      Note: Simply always having philosophers pick up left before right causes deadlock. The asymmetric approach is the simplest fix.
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     CHAPTER 5 — MEMORY MANAGEMENT
+══════════════════════════════════════════════════════ -->
+<div id="ch2" class="tab-content ch2">
+
+  <div class="chapter-header">
+    <div class="chapter-tag">CHAPTER 05 · CO5</div>
+    <div class="chapter-title">Memory Management</div>
+    <div class="chapter-sub">Partitioning · Paging · Segmentation · TLB · Virtual Memory · Page Replacement</div>
+  </div>
+
+  <div class="section-label">Core Concepts</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Why Memory Management?</div>
+    <div class="concept-body">
+      The CPU can ONLY access data in <strong>main memory</strong> and registers. For multiprogramming (multiple processes in RAM), the OS must:<br><br>
+      • Allocate &amp; deallocate memory efficiently<br>
+      • Protect one process's memory from another<br>
+      • Enable processes larger than physical memory (virtual memory)<br><br>
+      Key concepts: <strong>Logical address</strong> (CPU generates) vs <strong>Physical address</strong> (actual RAM). The <strong>MMU (Memory Management Unit)</strong> translates between them.
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Address Binding — When are addresses translated?</div>
+    <div class="concept-body">
+      <strong>1. Compile time</strong> — Absolute addresses generated. If start location changes, must recompile. (Old MS-DOS)<br>
+      <strong>2. Load time</strong> — Relocatable code; final binding at load. If start changes, reload only.<br>
+      <strong>3. Execution time</strong> — Binding delayed to runtime (most modern OSes). Requires hardware (MMU). Allows process to move in memory.
+    </div>
+  </div>
+
+  <div class="section-label">Memory Partitioning</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Fixed Partitioning</div>
+    <div class="concept-body">
+      Memory divided into <strong>fixed-size partitions</strong>. Each partition holds exactly one process.<br><br>
+      <strong>Problem: Internal Fragmentation</strong> — Allocated memory &gt; needed memory. Wasted space <em>inside</em> a partition.<br>
+      Simple to implement but inflexible.
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Dynamic Partitioning</div>
+    <div class="concept-body">
+      Partitions created on demand with exact size. Memory maintained as list of free holes.<br><br>
+      <strong>Problem: External Fragmentation</strong> — Total free memory is enough but it's scattered in small pieces (not contiguous).<br>
+      <strong>Solution:</strong> <strong>Compaction</strong> — Shuffle processes to merge free holes into one big block. Requires dynamic relocation. Expensive!
+    </div>
+  </div>
+
+  <div class="section-label">Memory Allocation Strategies</div>
+
+  <div class="tbl-wrap ch2">
+    <table>
+      <tr><th>Strategy</th><th>Description</th><th>Advantage</th><th>Disadvantage</th></tr>
+      <tr><td><strong>First Fit</strong></td><td>Allocate the first hole big enough</td><td>Fastest search</td><td>Leaves small leftover holes at start</td></tr>
+      <tr><td><strong>Best Fit</strong></td><td>Allocate the smallest hole that's big enough</td><td>Minimal leftover per allocation</td><td>Slow (search entire list); creates tiny unusable holes</td></tr>
+      <tr><td><strong>Worst Fit</strong></td><td>Allocate the largest hole</td><td>Large leftover hole (potentially reusable)</td><td>Slowest; wastes big holes</td></tr>
+    </table>
+  </div>
+
+  <div class="callout tip"><span class="icon">💡</span><div>Simulation studies: <strong>First Fit and Best Fit both beat Worst Fit</strong> in utilization. First Fit is generally faster than Best Fit. The <strong>50% rule</strong>: ~1/3 of memory may be unusable due to fragmentation with First Fit.</div></div>
+
+  <div class="section-label">Paging</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Paging — Basic Concept</div>
+    <div class="concept-body">
+      <strong>Physical memory</strong> divided into fixed-size blocks = <strong>Frames</strong><br>
+      <strong>Logical memory</strong> divided into same-size blocks = <strong>Pages</strong><br><br>
+      Pages of a process can be loaded into <em>any available</em> frames (non-contiguous). The <strong>Page Table</strong> maps page numbers to frame numbers.<br><br>
+      A logical address is split into: <strong>Page number (p)</strong> + <strong>Page offset (d)</strong><br>
+      Physical address = Frame_base_address + offset
+    </div>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">📐 Address Translation Example</div>
+    <div class="matrix">
+Page size = 4 bytes, Physical memory = 32 bytes (8 frames)
+Logical address 13:
+
+13 in binary = 1101
+With 4-byte pages → page bits = 2 (since 4=2²)
+Page number (p) = 13 / 4 = <span class="mh">3</span>
+Page offset (d)  = 13 % 4 = <span class="mh">1</span>
+
+Page table: Page 3 → Frame 2
+Physical address = 2×4 + 1 = <span class="mh">9</span> ✓
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Paging — Fragmentation</div>
+    <div class="concept-body">
+      ✅ <strong>No external fragmentation</strong> — Any free frame can be used for any page<br>
+      ⚠️ <strong>Internal fragmentation</strong> — Last page of a process may not be full<br>
+      Example: Process needs 72,766 bytes, page size = 2048 bytes → needs 35.5 pages → 36 pages allocated → internal fragmentation = 2048 − (72766 − 35×2048) = 962 bytes
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">TLB — Translation Look-aside Buffer</div>
+    <div class="concept-body">
+      Problem with page tables: Stored in main memory → every address translation requires <strong>2 memory accesses</strong> (page table + actual data) → slow!<br><br>
+      <strong>TLB</strong> = A small, fast associative cache that stores recent page-to-frame mappings.<br><br>
+      <strong>TLB Hit</strong> → Frame found directly, only 1 memory access needed<br>
+      <strong>TLB Miss</strong> → Access page table in memory, then update TLB
+    </div>
+    <details class="deep-dive">
+      <summary>Effective Access Time (EAT) Calculation</summary>
+      <div class="deep-content">
+        Let <code>α</code> = hit ratio, <code>t</code> = TLB search time, <code>m</code> = memory access time<br><br>
+        <strong>EAT = α(t + m) + (1-α)(t + 2m)</strong><br><br>
+        <em>Example:</em> α = 0.80, t = 20ns, m = 100ns<br>
+        EAT = 0.80(20+100) + 0.20(20+100+100)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0.80×120 + 0.20×220<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 96 + 44 = <strong>140 ns</strong> (40% slower than 100ns ideal)
+      </div>
+    </details>
+  </div>
+
+  <div class="section-label">Segmentation</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Segmentation</div>
+    <div class="concept-body">
+      Logical memory divided into variable-size <strong>segments</strong> (code, data, stack, heap). Matches programmer's view of memory.<br><br>
+      A logical address = <strong>&lt;segment number, offset&gt;</strong><br>
+      <strong>Segment Table</strong> has base (starting physical address) and limit (length) for each segment.<br><br>
+      <strong>Physical address</strong> = segment base + offset (if offset &lt; limit, else trap)<br><br>
+      ✅ No internal fragmentation<br>
+      ⚠️ External fragmentation possible (variable sizes)<br>
+      ✅ Matches logical structure (function = segment)
+    </div>
+  </div>
+
+  <div class="tbl-wrap ch2">
+    <table>
+      <tr><th>Feature</th><th>Paging</th><th>Segmentation</th></tr>
+      <tr><td>Division</td><td>Fixed-size pages</td><td>Variable-size segments</td></tr>
+      <tr><td>Fragmentation</td><td>Internal only</td><td>External only</td></tr>
+      <tr><td>Programmer visible?</td><td>No (transparent)</td><td>Yes (logical units)</td></tr>
+      <tr><td>Address format</td><td>Page # + offset</td><td>Segment # + offset</td></tr>
+      <tr><td>Protection</td><td>Per page bits</td><td>Per segment (read/write/execute)</td></tr>
+    </table>
+  </div>
+
+  <div class="section-label">Virtual Memory &amp; Demand Paging</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Virtual Memory — Core Idea</div>
+    <div class="concept-body">
+      Virtual memory allows programs <strong>larger than physical RAM</strong> to run. Only the <em>needed</em> parts (pages) are loaded into memory. Rest stays on disk.<br><br>
+      <strong>Demand Paging</strong> — Load a page only when it is accessed (demanded). A <strong>valid-invalid bit</strong> in the page table indicates if a page is in memory (valid) or on disk (invalid).<br><br>
+      <strong>Page Fault</strong> — When a page is accessed but not in memory → OS loads it from disk → expensive (I/O operation!)
+    </div>
+  </div>
+
+  <div class="algo-box">
+    <div class="algo-title">Page Fault Handling Steps</div>
+    <span class="step">1.</span> Process accesses a page → MMU checks valid-invalid bit<br>
+    <span class="step">2.</span> Bit = invalid → <span class="kw">PAGE FAULT</span> trap to OS<br>
+    <span class="step">3.</span> OS finds page on disk (backing store)<br>
+    <span class="step">4.</span> Find a free frame (or select victim frame via page replacement)<br>
+    <span class="step">5.</span> Load page from disk into frame<br>
+    <span class="step">6.</span> Update page table; set valid bit<br>
+    <span class="step">7.</span> Restart the instruction that caused fault
+  </div>
+
+  <div class="section-label">Page Replacement Algorithms</div>
+
+  <div class="concept-card">
+    <div class="concept-title">FIFO (First-In First-Out)</div>
+    <div class="concept-body">
+      Replace the page that has been in memory the <strong>longest</strong>. Simple queue.<br><br>
+      ⚠️ <strong>Belady's Anomaly</strong> — More frames can sometimes cause MORE page faults! (Unique to FIFO)
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Optimal Page Replacement (OPT)</div>
+    <div class="concept-body">
+      Replace the page that will <strong>not be used for the longest time</strong> in the future.<br><br>
+      ✅ Minimum page faults guaranteed<br>
+      ❌ Not implementable in practice (requires future knowledge)<br>
+      Used as a <strong>benchmark</strong> to evaluate other algorithms.
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">LRU (Least Recently Used)</div>
+    <div class="concept-body">
+      Replace the page that has <strong>not been used for the longest time in the past</strong>. Based on principle of locality.<br><br>
+      ✅ Good performance, close to Optimal<br>
+      ❌ Implementation expensive (needs timestamp or stack)<br>
+      No Belady's anomaly (stack algorithm)
+    </div>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">📊 Page Replacement Example — Reference string: 7,0,1,2,0,3,0,4,2,3,0,3,2 | Frames = 3</div>
+    <div class="matrix">
+<span class="mh">FIFO:</span>
+7 0 1 | 2 0 3 | 0 4 2 | 3 0 3 | 2
+7 7 7   2 2 2   0 0 0   3 3 3   3
+  0 0   0 0 0   3 3 3   3 0 0   0
+    1   1 1 3   3 4 4   4 4 4   2
+F F F   F H F   F F H   F F H   F
+
+Total page faults with FIFO = <span class="mh">9</span>
+
+<span class="mh">LRU:</span>
+7→F, 0→F, 1→F, 2→F(rep 7), 0→H, 3→F(rep 1), 0→H,
+4→F(rep 2), 2→F(rep 3), 3→F(rep 0), 0→F(rep 2), 3→H, 2→F
+Total page faults with LRU = <span class="mh">8</span>
+    </div>
+  </div>
+
+  <div class="tbl-wrap ch2">
+    <table>
+      <tr><th>Algorithm</th><th>Replace</th><th>Belady?</th><th>Implementable?</th><th>Performance</th></tr>
+      <tr><td><strong>FIFO</strong></td><td>Oldest loaded page</td><td>Yes ⚠️</td><td>Yes (easy)</td><td>Worst</td></tr>
+      <tr><td><strong>OPT</strong></td><td>Furthest future use</td><td>No</td><td>No (theoretical)</td><td>Best</td></tr>
+      <tr><td><strong>LRU</strong></td><td>Least recently used</td><td>No</td><td>Yes (complex)</td><td>Near-optimal</td></tr>
+    </table>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Thrashing</div>
+    <div class="concept-body">
+      <strong>Thrashing</strong> occurs when a process spends more time <strong>paging (swapping)</strong> than executing — CPU utilization drops dramatically.<br><br>
+      <strong>Cause:</strong> Too many processes in memory → each has too few frames → constant page faults<br>
+      <strong>Detection:</strong> CPU utilization drops even as degree of multiprogramming increases<br>
+      <strong>Solution:</strong> <em>Working Set Model</em> — Keep the "working set" (recently used pages) of each process in memory. If total working sets > available frames → suspend some processes.
+    </div>
+  </div>
+
+  <div class="section-label">Important Q&amp;A</div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q1</span>Explain paging and how logical address is translated to physical address. (8 marks)</div>
+    <div class="qa-a">
+      <strong>Paging</strong> is a memory management scheme that allows the physical address space of a process to be non-contiguous. Physical memory is divided into fixed-size blocks called <em>frames</em>; logical memory into same-size blocks called <em>pages</em>.<br><br>
+      <strong>Address Translation:</strong><br>
+      The logical address (generated by CPU) is divided into: <em>Page number (p)</em> = high-order bits, <em>Page offset (d)</em> = low-order bits.<br>
+      If logical address space = 2<sup>m</sup> and page size = 2<sup>n</sup>: high (m-n) bits = page number, low n bits = offset.<br><br>
+      The page table is indexed with <em>p</em> to get the frame number <em>f</em>.<br>
+      Physical address = f × page_size + d<br><br>
+      <strong>Advantages:</strong> No external fragmentation, simple memory allocation<br>
+      <strong>Disadvantages:</strong> Internal fragmentation in last page; page table overhead
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q2</span>What is TLB? How does it improve memory access? Calculate EAT. (6 marks)</div>
+    <div class="qa-a">
+      A <strong>TLB (Translation Look-aside Buffer)</strong> is a small, fast associative cache that stores recently used page-to-frame mappings. It solves the problem of 2 memory accesses needed with page tables stored in RAM.<br><br>
+      <strong>Working:</strong><br>
+      CPU generates page number → Check TLB:<br>
+      • <em>TLB Hit</em>: Frame found immediately → 1 memory access total<br>
+      • <em>TLB Miss</em>: Access page table in memory → 2 memory accesses total → update TLB<br><br>
+      <strong>EAT formula:</strong> EAT = α(t+m) + (1-α)(t+2m)<br>
+      where α = hit ratio, t = TLB access time, m = memory access time<br><br>
+      <em>Example:</em> α=0.98, t=10ns, m=100ns<br>
+      EAT = 0.98(110) + 0.02(210) = 107.8 + 4.2 = <strong>112 ns</strong> (vs 200ns without TLB)
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q3</span>Compare Best Fit, First Fit and Worst Fit allocation strategies. (6 marks)</div>
+    <div class="qa-a">
+      See comparison table above. Key exam points:<br><br>
+      • <strong>First Fit</strong> — Fastest (stops at first suitable hole). Best for speed.<br>
+      • <strong>Best Fit</strong> — Least waste per allocation but creates many tiny holes and requires full list search.<br>
+      • <strong>Worst Fit</strong> — Produces largest leftover hole (may accommodate future requests) but worst overall performance.<br><br>
+      <strong>Conclusion from simulations:</strong> First Fit and Best Fit both outperform Worst Fit. First Fit is generally preferred due to speed.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q4</span>What is Thrashing? How is it caused and prevented? (5 marks)</div>
+    <div class="qa-a">
+      <strong>Thrashing</strong>: A process spends more time in paging than actual execution. CPU utilization drops sharply.<br><br>
+      <strong>Cause:</strong> Increasing degree of multiprogramming beyond a point reduces frames per process below the working set → frequent page faults → OS spends all time swapping pages.<br><br>
+      <strong>Prevention:</strong><br>
+      1. <em>Working Set Model</em>: Track pages used in last Δ references (working set). Allocate enough frames to hold each process's working set. If Σ(working set sizes) > total frames → suspend a process.<br>
+      2. <em>Page Fault Frequency (PFF) scheme</em>: If page fault rate is too high → give more frames. If too low → take away frames.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q5</span>Apply FIFO and LRU to: Ref string = 1,2,3,4,1,2,5,1,2,3,4,5; Frames = 3 (8 marks)</div>
+    <div class="qa-a">
+      <strong>FIFO (3 frames):</strong><br>
+      1→[1] F | 2→[1,2] F | 3→[1,2,3] F | 4→[4,2,3] F(rep1) | 1→[4,1,3] F(rep2) | 2→[4,1,2] F(rep3) | 5→[5,1,2] F(rep4) | 1→H | 2→H | 3→[5,3,2] F(rep1) | 4→[5,3,4] F(rep2) | 5→H<br>
+      <strong>FIFO page faults = 9</strong><br><br>
+      <strong>LRU (3 frames):</strong><br>
+      1→[1] F | 2→[1,2] F | 3→[1,2,3] F | 4→[2,3,4] F(rep1) | 1→[3,4,1] F(rep2) | 2→[4,1,2] F(rep3) | 5→[1,2,5] F(rep4) | 1→H | 2→H | 3→[2,5,3] F(rep1) | 4→[5,3,4] F(rep2) | 5→H<br>
+      <strong>LRU page faults = 8</strong><br><br>
+      LRU performs better here. OPT would give even fewer faults.
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     CHAPTER 6 — FILE MANAGEMENT & I/O
+══════════════════════════════════════════════════════ -->
+<div id="ch3" class="tab-content ch3">
+
+  <div class="chapter-header">
+    <div class="chapter-tag">CHAPTER 06 · CO6</div>
+    <div class="chapter-title">File Management &amp; I/O Management</div>
+    <div class="chapter-sub">File Organization · Directory Structure · I/O Devices · DMA · Disk Scheduling</div>
+  </div>
+
+  <div class="section-label">File System Concepts</div>
+
+  <div class="concept-card">
+    <div class="concept-title">What is a File?</div>
+    <div class="concept-body">
+      A <strong>file</strong> is a named collection of related information stored on secondary storage. It's the smallest logical unit of storage from the user's perspective.<br><br>
+      <strong>File Attributes:</strong> Name, Type, Location (pointer to device/location), Size, Protection (permissions), Timestamps (created/modified/accessed), Owner<br><br>
+      <strong>File Operations:</strong> Create, Read, Write, Reposition (seek), Delete, Truncate, Open, Close
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">File Organization &amp; Access Methods</div>
+    <div class="concept-body">
+      <strong>1. Sequential Access</strong> — Read bytes/records in order (like magnetic tape). Position maintained with a pointer. Most common.<br>
+      Operations: read_next(), write_next(), reset()<br><br>
+      <strong>2. Direct (Random) Access</strong> — Any block can be accessed directly using block number. Like a disk.<br>
+      Operations: read(n), write(n), position_to(n)<br><br>
+      <strong>3. Indexed Sequential Access</strong> — Index structure built on sequential file. Use index to find region, then sequential search within.
+    </div>
+  </div>
+
+  <div class="section-label">Directory Structure</div>
+
+  <div class="tbl-wrap ch3">
+    <table>
+      <tr><th>Structure</th><th>Description</th><th>Pros</th><th>Cons</th></tr>
+      <tr><td><strong>Single Level</strong></td><td>All files in one directory. All users share one namespace.</td><td>Simple to implement</td><td>Naming conflicts between users; hard to organize</td></tr>
+      <tr><td><strong>Two Level</strong></td><td>Separate directory for each user (MFD = Master, UFD = User)</td><td>Isolation between users</td><td>No sharing between users; no subdirectories</td></tr>
+      <tr><td><strong>Tree Structure</strong></td><td>Hierarchical — root → directories → subdirectories → files</td><td>Efficient search; organized; used in Unix/Windows</td><td>Sharing across branches is harder</td></tr>
+      <tr><td><strong>Acyclic Graph</strong></td><td>Allows shared files/dirs via links (symbolic/hard links)</td><td>Sharing without duplication</td><td>Dangling pointers if original deleted; complex</td></tr>
+    </table>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Path Names</div>
+    <div class="concept-body">
+      <strong>Absolute path:</strong> From root → /home/user/docs/file.txt<br>
+      <strong>Relative path:</strong> From current directory → ../docs/file.txt<br><br>
+      <strong>Special entries:</strong> "." = current directory, ".." = parent directory
+    </div>
+  </div>
+
+  <div class="section-label">I/O Management</div>
+
+  <div class="concept-card">
+    <div class="concept-title">I/O Devices &amp; Categories</div>
+    <div class="concept-body">
+      <strong>Block devices:</strong> Store data in fixed-size blocks, each addressable (HDD, SSD, DVD). Support read/write/seek.<br>
+      <strong>Character devices:</strong> Deliver/accept stream of bytes (keyboard, mouse, serial port). No addressing.<br>
+      <strong>Network devices:</strong> Socket interface (TCP/IP)<br><br>
+      <strong>Hard Disk Structure:</strong> Platter → Track → Sector (512 bytes to 4KB). Access time = Seek time + Rotational latency + Transfer time
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Modes of I/O Transfer</div>
+    <div class="concept-body">
+      <strong>1. Programmed I/O (Polling):</strong> CPU continuously checks (polls) device status register. Wastes CPU cycles. Used for slow devices or simple systems.<br><br>
+      <strong>2. Interrupt-Driven I/O:</strong> CPU initiates I/O, then continues other work. Device interrupts CPU when done. More efficient than polling. Used in most modern systems.<br><br>
+      <strong>3. DMA (Direct Memory Access):</strong> Special DMA controller handles bulk data transfer between device and memory <em>without CPU involvement</em>. CPU only initiates and is interrupted at completion. Most efficient for large data transfers (disk, network).
+    </div>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">📊 DMA vs Programmed I/O vs Interrupt</div>
+    <div class="matrix">
+<span class="mh">Programmed I/O:</span>
+CPU → issues I/O → keeps checking (polling) → gets data
+CPU utilization: LOW (busy waiting)
+
+<span class="mh">Interrupt-Driven I/O:</span>  
+CPU → issues I/O → does other work → INTERRUPT → handles data
+CPU utilization: MEDIUM-HIGH
+
+<span class="mh">DMA:</span>
+CPU → tells DMA controller (address, count, direction)
+DMA → transfers data directly to/from memory (no CPU)
+CPU → INTERRUPT only when transfer complete
+CPU utilization: HIGHEST ✓ Best for large transfers
+    </div>
+  </div>
+
+  <div class="section-label">Disk Scheduling Algorithms</div>
+
+  <div class="concept-card">
+    <div class="concept-title">Goal of Disk Scheduling</div>
+    <div class="concept-body">
+      Minimize <strong>seek time</strong> (arm movement) to serve disk read/write requests efficiently. Given a queue of track requests, find the best order to service them.<br><br>
+      <strong>Disk access time =</strong> Seek time + Rotational latency + Transfer time<br>
+      Seek time dominates → that's what we optimize.
+    </div>
+  </div>
+
+  <div class="tbl-wrap ch3">
+    <table>
+      <tr><th>Algorithm</th><th>Strategy</th><th>Head Movement</th><th>Issue</th></tr>
+      <tr><td><strong>FCFS</strong></td><td>Service in arrival order</td><td>High (back &amp; forth)</td><td>Not optimal; fair</td></tr>
+      <tr><td><strong>SSTF</strong></td><td>Service closest request to current head</td><td>Low usually</td><td>Starvation (far requests may never be served)</td></tr>
+      <tr><td><strong>SCAN (Elevator)</strong></td><td>Head moves in one direction, services all requests, then reverses</td><td>Medium</td><td>Requests at far end wait longer</td></tr>
+      <tr><td><strong>C-SCAN</strong></td><td>Like SCAN but returns to beginning without servicing on return sweep</td><td>Medium</td><td>More uniform wait times than SCAN</td></tr>
+      <tr><td><strong>LOOK</strong></td><td>Like SCAN but only goes to last request, doesn't go to disk end</td><td>Lower than SCAN</td><td>Better than SCAN</td></tr>
+      <tr><td><strong>C-LOOK</strong></td><td>Like C-SCAN but only goes to last request in each direction</td><td>Lowest</td><td>Best of LOOK variants</td></tr>
+    </table>
+  </div>
+
+  <div class="example-box">
+    <div class="ex-label">📊 Disk Scheduling Example — Requests: 82,170,43,140,24,16,190 | Head at: 50 | Moving towards higher</div>
+    <div class="matrix">
+<span class="mh">FCFS:</span> 50→82→170→43→140→24→16→190
+Total head movement = 32+88+127+97+116+8+174 = <span class="mh">642 cylinders</span>
+
+<span class="mh">SSTF:</span> 50→43→24→16→82→140→170→190
+                 ↑closest each time
+Total = 7+19+8+66+58+30+20 = <span class="mh">208 cylinders</span>
+
+<span class="mh">SCAN:</span> 50→82→140→170→190→(reverse)→43→24→16
+Total = 32+58+30+20+147+19+8 = <span class="mh">314 cylinders</span>
+
+<span class="mh">C-SCAN:</span> 50→82→140→170→190→(jump to 0)→16→24→43
+Total = (50→190) + jump + (0→43)
+= 140 + 190 + 43 = <span class="mh">373 cylinders</span>
+(but more uniform wait times)
+
+<span class="mh">LOOK:</span> 50→82→140→170→190→43→24→16
+Total = 140 + 174 = <span class="mh">314 cylinders</span>
+
+Best: <span class="mh">SSTF (208) but risks starvation; LOOK/C-LOOK best balance</span>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="icon">💡</span>
+    <div><strong>Which to recommend?</strong> SSTF has best seek time but starvation risk. SCAN/LOOK better for heavily loaded systems. C-SCAN/C-LOOK when uniform wait times are needed. FCFS only when requests are rarely queued.</div>
+  </div>
+
+  <div class="section-label">Important Q&amp;A</div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q1</span>Explain the different types of directory structures with diagrams described. (8 marks)</div>
+    <div class="qa-a">
+      <strong>1. Single Level Directory</strong>: All files in one directory for all users. Simple but causes naming conflicts and disorganized as files grow.<br><br>
+      <strong>2. Two Level Directory</strong>: OS maintains a Master File Directory (MFD). Each user gets their own User File Directory (UFD). Solves naming conflicts but no subdirectories or easy sharing.<br><br>
+      <strong>3. Tree-Structured Directory</strong>: Hierarchical structure with a root, branching into subdirectories and files. Used in UNIX, Windows. Supports absolute and relative paths. Efficient but sharing files across branches requires copying or links.<br><br>
+      <strong>4. Acyclic Graph Directory</strong>: Allows directories and files to be shared via links (hard link = points to inode; symbolic/soft link = path reference). Enables sharing without duplication. Problem: dangling pointers when original is deleted. Solution: reference counting (delete only when count = 0).
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q2</span>What is DMA? How does it work? Advantages? (6 marks)</div>
+    <div class="qa-a">
+      <strong>DMA (Direct Memory Access)</strong> is a hardware mechanism that allows I/O devices to transfer data directly to/from main memory without involving the CPU for each byte.<br><br>
+      <strong>Working:</strong><br>
+      1. CPU writes DMA command block (source address, destination address, byte count, direction)<br>
+      2. CPU resumes other work<br>
+      3. DMA controller handles the data transfer byte by byte (or block by block) via memory bus<br>
+      4. When done, DMA controller interrupts CPU<br>
+      5. CPU handles the interrupt (cleanup/processing)<br><br>
+      <strong>Advantages:</strong><br>
+      • Frees CPU during bulk data transfer<br>
+      • Faster for large transfers (disk, network cards)<br>
+      • CPU only involved at start and end<br><br>
+      <strong>Disadvantage:</strong> DMA and CPU compete for memory bus → "cycle stealing"
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q3</span>Apply SCAN and C-SCAN to: Queue = 98,183,37,122,14,124,65,67. Head = 53. Moving towards higher. (8 marks)</div>
+    <div class="qa-a">
+      Sort requests: 14, 37, 65, 67, 98, 122, 124, 183<br>
+      Head at 53, moving towards higher.<br><br>
+      <strong>SCAN:</strong><br>
+      Higher direction first: 53→65→67→98→122→124→183<br>
+      Then reverse: 183→37→14<br>
+      Movement: (65-53)+(67-65)+(98-67)+(122-98)+(124-122)+(183-124) + (183-14)<br>
+      = 12+2+31+24+2+59 + (183→37: 146 + 37-14: 23) = 130 + 169 = <strong>299 cylinders</strong><br><br>
+      <strong>C-SCAN:</strong><br>
+      Higher direction: 53→65→67→98→122→124→183<br>
+      Jump to 0, then service: 0→14→37<br>
+      Movement = (183-53) + (183-0) + (37-0) = 130 + 183 + 37 = <strong>350 cylinders</strong><br>
+      (But wait time is more uniform — no one in lower range waits as long)
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q4</span>Differentiate FCFS, SSTF and LOOK disk scheduling. (6 marks)</div>
+    <div class="qa-a">
+      <strong>FCFS (First Come First Serve):</strong> Services requests in order of arrival. Simple and fair. High total head movement as head jumps back and forth across the disk. No starvation.<br><br>
+      <strong>SSTF (Shortest Seek Time First):</strong> Always services the request nearest the current head position. Minimizes individual seek times and total movement. However, requests far from the head can starve if new closer requests keep arriving.<br><br>
+      <strong>LOOK:</strong> Head moves in one direction serving all requests until no more in that direction, then reverses (doesn't go all the way to end like SCAN). More efficient than SCAN. No starvation. Good all-around performer for loaded disks.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q5</span>Explain the three modes of I/O data transfer. (6 marks)</div>
+    <div class="qa-a">
+      <strong>1. Programmed I/O (Polling):</strong> CPU directly controls I/O. After issuing command, CPU continuously checks (polls) a status register waiting for I/O to complete. Very wasteful — CPU is stuck in a busy-wait loop. Used only in embedded/simple systems.<br><br>
+      <strong>2. Interrupt-Driven I/O:</strong> CPU issues I/O command and then continues executing other processes. When the device completes the operation, it sends a hardware interrupt to the CPU. CPU saves state, runs interrupt handler, resumes. More efficient as CPU can do useful work while I/O proceeds. Used for character devices (keyboard, mouse).<br><br>
+      <strong>3. DMA (Direct Memory Access):</strong> CPU programs a DMA controller with source, destination, and size. DMA transfers data between device and memory directly via the memory bus, without per-byte CPU involvement. Interrupts CPU only when entire transfer is done. Best for bulk transfers. Used for disks, sound cards, network adapters.
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-q" onclick="toggleQA(this)"><span class="q-num">Q6</span>What is file organization? Compare sequential, direct and indexed sequential access. (5 marks)</div>
+    <div class="qa-a">
+      <strong>File Organization</strong> refers to how data is stored and accessed within a file.<br><br>
+      <strong>Sequential Access:</strong> Records read in order, one after another. Pointer (current_position) advances with each read/write. Must rewind to re-read earlier records. Simple, works for all media (tapes, disks).<br><br>
+      <strong>Direct (Random) Access:</strong> Any record can be read/written directly by specifying its block number. No need to read preceding records. Works only on direct-access devices (disks, not tapes). Ideal for databases.<br><br>
+      <strong>Indexed Sequential Access:</strong> Builds an index over a sequential file. Index stores key + pointer. To find a record: binary search the index → get pointer → sequential search from that point. Good balance between random and sequential access. Used in ISAM (Indexed Sequential Access Method).
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
